@@ -160,6 +160,16 @@ export default defineComponent({
     const filteredItems = computed(() => {
       let items = feedItems.value;
 
+      // First filter by tab selection
+      if (tab.value !== "myfeed") {
+        items = items.filter(
+          (item) =>
+            item.asset_type &&
+            item.asset_type.toLowerCase() === tab.value.toLowerCase()
+        );
+      }
+
+      // Then apply search filter
       if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
         items = items.filter(
@@ -206,7 +216,7 @@ export default defineComponent({
       try {
         const { data, error: supabaseError } = await supabase
           .from("Headlines")
-          .select("*")
+          .select("*, asset_type")
           .order("post_timestamp", { ascending: false });
 
         if (supabaseError) throw supabaseError;
@@ -315,6 +325,16 @@ export default defineComponent({
       };
       return colors[sentiment] || "grey";
     };
+
+    // Add watch for tab changes
+    watch(tab, () => {
+      // Reset pagination when tab changes
+      page.value = 1;
+      displayedItems.value = [];
+      hasMoreItems.value = true;
+      const initialItems = filteredItems.value.slice(0, itemsPerPage.value);
+      displayedItems.value = initialItems;
+    });
 
     return {
       // Existing returns
