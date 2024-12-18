@@ -253,7 +253,7 @@ export default defineComponent({
       }
     };
 
-    // Real-time subscription
+    // Update the subscribeToHeadlines function
     const subscribeToHeadlines = () => {
       const subscription = supabase
         .from("Headlines")
@@ -262,32 +262,72 @@ export default defineComponent({
 
           switch (payload.eventType) {
             case "INSERT":
+              // Add isNew flag to the new record
               const newRecord = { ...payload.new, isNew: true };
+
+              // Update both feedItems and displayedItems
               feedItems.value = [newRecord, ...feedItems.value];
 
+              // Only add to displayedItems if it matches current tab filter
+              if (
+                tab.value === "myfeed" ||
+                (newRecord.asset_type &&
+                  newRecord.asset_type.toLowerCase() ===
+                    tab.value.toLowerCase())
+              ) {
+                displayedItems.value = [newRecord, ...displayedItems.value];
+              }
+
+              // Remove the isNew flag after 5 seconds
               setTimeout(() => {
-                const index = feedItems.value.findIndex(
+                // Update in feedItems
+                const feedIndex = feedItems.value.findIndex(
                   (item) => item.id === newRecord.id
                 );
-                if (index !== -1) {
-                  feedItems.value[index] = {
-                    ...feedItems.value[index],
+                if (feedIndex !== -1) {
+                  feedItems.value[feedIndex] = {
+                    ...feedItems.value[feedIndex],
                     isNew: false,
                   };
                 }
-              }, 3000);
+
+                // Update in displayedItems
+                const displayIndex = displayedItems.value.findIndex(
+                  (item) => item.id === newRecord.id
+                );
+                if (displayIndex !== -1) {
+                  displayedItems.value[displayIndex] = {
+                    ...displayedItems.value[displayIndex],
+                    isNew: false,
+                  };
+                }
+              }, 10000);
               break;
+
             case "DELETE":
+              // Remove from both arrays
               feedItems.value = feedItems.value.filter(
                 (item) => item.id !== payload.old.id
               );
+              displayedItems.value = displayedItems.value.filter(
+                (item) => item.id !== payload.old.id
+              );
               break;
+
             case "UPDATE":
-              const index = feedItems.value.findIndex(
+              // Update in both arrays
+              const updateFeedIndex = feedItems.value.findIndex(
                 (item) => item.id === payload.new.id
               );
-              if (index !== -1) {
-                feedItems.value[index] = payload.new;
+              if (updateFeedIndex !== -1) {
+                feedItems.value[updateFeedIndex] = payload.new;
+              }
+
+              const updateDisplayIndex = displayedItems.value.findIndex(
+                (item) => item.id === payload.new.id
+              );
+              if (updateDisplayIndex !== -1) {
+                displayedItems.value[updateDisplayIndex] = payload.new;
               }
               break;
           }
@@ -397,7 +437,7 @@ export default defineComponent({
 
   &.new-record {
     border: 2px solid $primary;
-    animation: highlightFade 3s forwards;
+    animation: highlightFade 10s forwards;
   }
 }
 
