@@ -63,6 +63,7 @@
               v-for="(item, index) in displayedItems"
               :key="index"
               class="q-mb-md bg-dark-page text-white"
+              :class="{ 'new-record': item.isNew }"
               bordered
             >
               <q-card-section>
@@ -183,18 +184,32 @@ export default defineComponent({
       return items;
     });
 
-    // Add new loadMore function
+    // Update the loadMore function
     const loadMore = async (index, done) => {
-      const start = (page.value - 1) * itemsPerPage.value;
-      const end = start + itemsPerPage.value;
-      const newItems = filteredItems.value.slice(start, end);
+      try {
+        const start = displayedItems.value.length;
+        const end = start + itemsPerPage.value;
+        const remainingItems = filteredItems.value.slice(start, end);
 
-      if (newItems.length > 0) {
-        displayedItems.value = [...displayedItems.value, ...newItems];
-        page.value++;
-        done();
-      } else {
-        hasMoreItems.value = false;
+        if (remainingItems.length > 0) {
+          // Only add items that aren't already in displayedItems
+          const newItems = remainingItems.filter(
+            (newItem) =>
+              !displayedItems.value.some(
+                (existingItem) => existingItem.id === newItem.id
+              )
+          );
+
+          if (newItems.length > 0) {
+            displayedItems.value = [...displayedItems.value, ...newItems];
+            page.value++;
+          } else {
+            hasMoreItems.value = false;
+          }
+        } else {
+          hasMoreItems.value = false;
+        }
+      } finally {
         done();
       }
     };
@@ -247,7 +262,20 @@ export default defineComponent({
 
           switch (payload.eventType) {
             case "INSERT":
-              feedItems.value = [payload.new, ...feedItems.value];
+              const newRecord = { ...payload.new, isNew: true };
+              feedItems.value = [newRecord, ...feedItems.value];
+
+              setTimeout(() => {
+                const index = feedItems.value.findIndex(
+                  (item) => item.id === newRecord.id
+                );
+                if (index !== -1) {
+                  feedItems.value[index] = {
+                    ...feedItems.value[index],
+                    isNew: false,
+                  };
+                }
+              }, 3000);
               break;
             case "DELETE":
               feedItems.value = feedItems.value.filter(
@@ -365,6 +393,12 @@ export default defineComponent({
 .q-card {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
+  transition: border-color 0.5s ease-out;
+
+  &.new-record {
+    border: 2px solid $primary;
+    animation: highlightFade 3s forwards;
+  }
 }
 
 .q-tabs {
@@ -442,5 +476,14 @@ export default defineComponent({
   align-items: center;
   background: rgba(0, 0, 0, 0.7);
   z-index: 2000;
+}
+
+@keyframes highlightFade {
+  0% {
+    border-color: $primary;
+  }
+  100% {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
 }
 </style>
