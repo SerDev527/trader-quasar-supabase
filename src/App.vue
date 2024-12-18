@@ -13,7 +13,7 @@ export default defineComponent({
 <style lang="scss">
 .q-card {
   margin: 0.8rem !important;
-  min-width: 420px;
+  // min-width: 420px;
 }
 
 @media (max-width: 600px) {

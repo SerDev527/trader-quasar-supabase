@@ -5,7 +5,7 @@
     <div>
       <div style="font-size: 10vh">404</div>
 
-      <div class="text-h4" style="opacity: 0.4">Opa, nada por aqui :/</div>
+      <div class="text-h4" style="opacity: 0.4">Oops, nothing here:/</div>
 
       <q-btn
         class="q-mt-xl"
@@ -15,7 +15,7 @@
         style="width: 10rem"
         unelevated
         :to="{ name: 'login' }"
-        label="Ir para o início"
+        label="Go to top"
       />
     </div>
   </div>

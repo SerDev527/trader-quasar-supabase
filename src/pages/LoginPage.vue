@@ -1,175 +1,294 @@
 <template>
-  <q-page class="bg-green-1 row justify-center items-center">
-    <q-form
-      class="square-card row justify-center"
-      @submit.prevent="handlerLogin"
-      ref="myform"
-    >
-      <q-card square bordered class="q-pa-sm shadow-1">
-        <q-card-section>
-          <p class="col-12 text-h6 text-left">Login</p>
-        </q-card-section>
-        <q-separator inset />
-        <q-card-section>
-          <div class="col-md-4 col-sm-6 col-xs-10 q-gutter-y-md">
-            <q-input
-              outlined
-              bottom-slots
-              v-model="form.email"
-              label="Email"
-              type="email"
-              lazy-rules
-              :rules="[
-                (val) => (val && val.length > 0) || 'Email é obrigatório!',
-                isValidEmail,
-              ]"
-              hint="Digite um email válido!"
-            >
-              <template v-slot:prepend>
-                <q-icon name="email" />
-              </template>
-              <template v-slot:append>
-                <q-icon
-                  name="close"
-                  @click="form.email = ''"
-                  class="cursor-pointer"
-                />
-              </template>
-              <template v-slot:hint v-if="!form.email">
-                Digite seu email.
-              </template>
-            </q-input>
-            <q-input
-              outlined
-              bottom-slots
-              v-model="form.password"
-              label="Nova senha"
-              counter
-              :type="visibility"
-              lazy-rules
-              :rules="[
-                (val) => (val && val.length > 0) || 'Senha é obrigatória.',
-              ]"
-            >
-              <template v-slot:prepend>
-                <q-icon name="lock" />
-              </template>
-              <template v-slot:append>
-                <q-icon
-                  name="close"
-                  @click="form.password = ''"
-                  class="cursor-pointer"
-                />
-              </template>
-              <template v-slot:hint v-if="!form.password">
-                Digite sua senha!
-              </template>
+  <q-page class="bg-dark row justify-center items-center">
+    <div class="auth-container">
+      <div class="text-center q-mb-md">
+        <h3 class="text-white text-h5">Sign in</h3>
+      </div>
+      <q-form class="auth-form" @submit.prevent="handlerLogin" ref="myform">
+        <div class="q-gutter-y-md">
+          <q-input
+            v-model="form.email"
+            label="Email"
+            type="email"
+            dark
+            outlined
+            class="auth-input"
+            :rules="[
+              (val) => (val && val.length > 0) || 'Email is required!',
+              isValidEmail,
+            ]"
+          />
 
-              <template v-slot:after>
-                <q-btn
-                  v-if="visibility == 'password'"
-                  round
-                  dense
-                  flat
-                  icon="visibility"
-                  @click="changeTypeEdit()"
-                ></q-btn>
-                <q-btn
-                  v-else
-                  round
-                  dense
-                  flat
-                  icon="visibility_off"
-                  @click="changeTypeEdit()"
-                ></q-btn>
-              </template>
-            </q-input>
-            <q-btn
-              label="Login"
-              color="primary"
-              class="full-width"
-              type="submit"
-            ></q-btn>
-            <q-btn
-              label="Registrar"
-              color="primary"
-              class="full-width"
-              flat
-              :to="{ name: 'register' }"
-            ></q-btn>
-            <q-btn
-              label="Esqueci minha senha!"
-              color="primary"
-              class="full-width"
-              flat
-              :to="{ name: 'forgot-password' }"
-            ></q-btn>
+          <q-input
+            v-model="form.password"
+            label="Password"
+            dark
+            outlined
+            class="auth-input"
+            :type="visibility"
+            :rules="[
+              (val) => (val && val.length > 0) || 'Password is required.',
+            ]"
+          >
+            <template v-slot:append>
+              <q-icon
+                :name="
+                  visibility === 'password' ? 'visibility_off' : 'visibility'
+                "
+                class="cursor-pointer"
+                @click="
+                  visibility = visibility === 'password' ? 'text' : 'password'
+                "
+              />
+            </template>
+          </q-input>
+
+          <q-btn
+            label="Sign in"
+            type="submit"
+            color="white"
+            text-color="black"
+            class="full-width"
+            size="lg"
+          />
+
+          <div class="text-center text-grey q-my-md">OR</div>
+
+          <q-btn
+            color="dark"
+            class="full-width google-btn"
+            size="lg"
+            flat
+            @click="handleGoogleLogin"
+          >
+            <template v-slot:default>
+              <div class="row full-width items-center justify-between">
+                <q-icon
+                  name="img:https://www.google.com/favicon.ico"
+                  size="18px"
+                  class="q-ml-sm"
+                />
+                <span class="flex-grow text-center text-white"
+                  >Continue with Google</span
+                >
+              </div>
+            </template>
+          </q-btn>
+
+          <q-btn
+            color="dark"
+            class="full-width facebook-btn"
+            size="lg"
+            flat
+            @click="handleFacebookLogin"
+          >
+            <template v-slot:default>
+              <div class="row full-width items-center justify-between">
+                <q-icon
+                  name="img:https://www.facebook.com/favicon.ico"
+                  size="18px"
+                  class="q-ml-sm"
+                />
+                <span class="flex-grow text-center text-white"
+                  >Continue with Facebook</span
+                >
+              </div>
+            </template>
+          </q-btn>
+
+          <div class="text-center q-mt-lg">
+            <span class="text-grey">Don't have an account? </span>
+            <router-link to="/register" class="text-primary"
+              >Sign up</router-link
+            >
           </div>
-        </q-card-section>
-      </q-card>
-    </q-form>
+        </div>
+      </q-form>
+    </div>
   </q-page>
 </template>
 
 <script>
 import { defineComponent, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-
 import useAuthUser from "src/composables/UserAuthUser";
 import useNotify from "src/composables/UseNotify";
+import useSupabase from "src/boot/supabase";
 
 export default defineComponent({
   name: "LoginPage",
   setup() {
     const router = useRouter();
-    const { login, isLoggedIn } = useAuthUser();
+    const { login, loginWithSocialProvider } = useAuthUser();
     const { notifyError, notifySuccess } = useNotify();
+    const { supabase } = useSupabase();
 
     const form = ref({
       email: "",
       password: "",
     });
 
-    onMounted(() => {
-      if (isLoggedIn) {
-        router.push({ name: "me" });
+    const visibility = ref("password");
+
+    onMounted(async () => {
+      try {
+        const session = supabase.auth.session();
+
+        if (session) {
+          router.push("/me");
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
       }
     });
 
-    const handlerLogin = async () => {
+    const handleGoogleLogin = async () => {
       try {
-        await login(form.value);
-        router.replace({ name: "me" });
-        notifySuccess("Bem vindo! 😁");
+        const { error } = await loginWithSocialProvider("google");
+        if (error) throw error;
+
+        const session = supabase.auth.session();
+
+        if (session) {
+          notifySuccess("Successfully signed in with Google!");
+          router.push("/me");
+        }
       } catch (error) {
         notifyError(error.message);
       }
     };
 
-    return { form, handlerLogin };
-  },
-  data() {
+    const handleFacebookLogin = async () => {
+      try {
+        const { error } = await loginWithSocialProvider("facebook");
+        if (error) throw error;
+
+        const session = supabase.auth.session();
+
+        if (session) {
+          notifySuccess("Successfully signed in with Facebook!");
+          router.push("/me");
+        }
+      } catch (error) {
+        notifyError(error.message);
+      }
+    };
+
+    const handlerLogin = async () => {
+      try {
+        const { error } = await login(form.value);
+        if (error) throw error;
+
+        const session = supabase.auth.session();
+
+        if (session) {
+          notifySuccess("Welcome back!");
+          router.push("/me");
+        }
+      } catch (error) {
+        notifyError(error.message);
+      }
+    };
+
     return {
-      email: "",
-      password: "",
-      visibility: "password",
+      form,
+      handlerLogin,
+      visibility,
+      handleGoogleLogin,
+      handleFacebookLogin,
     };
   },
   methods: {
-    changeTypeEdit() {
-      if (this.visibility == "password") {
-        this.visibility = "text";
-      } else {
-        this.visibility = "password";
-      }
-    },
     isValidEmail(val) {
       const emailPattern =
         /^(?=[a-zA-Z0-9@._%+-]{6,254}$)[a-zA-Z0-9._%+-]{1,64}@(?:[a-zA-Z0-9-]{1,63}\.){1,8}[a-zA-Z]{2,63}$/;
-      return emailPattern.test(val) || "Formato de email inválido!";
+      return emailPattern.test(val) || "Invalid email format!";
     },
   },
 });
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.auth-container {
+  width: 100%;
+  max-width: 500px;
+
+  .text-h5 {
+    font-size: 32px;
+    font-weight: 500;
+    padding: 8px 16px;
+    margin: 0 0 16px 0;
+  }
+}
+
+.auth-form {
+  width: 100%;
+  padding: 1.5rem;
+  border-radius: 8px;
+  background: #1a1a1a;
+}
+
+.auth-input {
+  .q-field__control {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  .q-field__label {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  input {
+    color: white !important;
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+}
+
+.google-btn,
+.facebook-btn {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 40px;
+  padding: 0 16px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .flex-grow {
+    flex-grow: 1;
+    text-align: center;
+    margin-right: 18px;
+  }
+
+  .q-icon {
+    opacity: 0.9;
+  }
+}
+
+.q-btn {
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+a {
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.q-gutter-y-md {
+  margin-top: -8px;
+  margin-bottom: -8px;
+
+  > * {
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+  }
+}
+</style>

@@ -1,12 +1,14 @@
 <template>
-  <q-page class="bg-green-1 row justify-center items-center">
+  <q-page class="bg-dark row justify-center items-center">
     <q-form
       class="square-card row justify-center"
       @submit.prevent="handlerForgotReset"
     >
       <q-card square bordered class="q-pa-sm shadow-1">
         <q-card-section>
-          <p class="login col-12 text-h6 text-left">Recuperação de Senha</p>
+          <p class="login col-12 text-h6 text-center text-white">
+            Password Recovery
+          </p>
         </q-card-section>
         <q-separator inset />
         <q-card-section>
@@ -17,12 +19,12 @@
               v-model="email"
               label="Email"
               type="email"
+              class="input-white"
               lazy-rules
               :rules="[
-                (val) => (val && val.length > 0) || 'Email é obrigatório!',
+                (val) => (val && val.length > 0) || 'Email is required!',
                 isValidEmail,
               ]"
-              hint="Digite um email válido para recuperação."
             >
               <template v-slot:prepend>
                 <q-icon name="email" />
@@ -36,13 +38,13 @@
               </template>
             </q-input>
             <q-btn
-              label="Recuperar Senha"
+              label="Recover Password"
               color="primary"
               class="full-width"
               type="submit"
             ></q-btn>
             <q-btn
-              label="Voltar para login"
+              label="Back to login"
               color="primary"
               class="full-width"
               flat
@@ -71,9 +73,7 @@ export default defineComponent({
     const handlerForgotReset = async () => {
       try {
         await sendPasswordResetEmail(email.value);
-        notifySuccess(
-          `Email de recuperação de email enviado para ${email.value}`
-        );
+        notifySuccess(`Recovery email sent to ${email.value}`);
       } catch (error) {
         notifyError(error.message);
       }
@@ -85,10 +85,8 @@ export default defineComponent({
     isValidEmail(val) {
       const emailPattern =
         /^(?=[a-zA-Z0-9@._%+-]{6,254}$)[a-zA-Z0-9._%+-]{1,64}@(?:[a-zA-Z0-9-]{1,63}\.){1,8}[a-zA-Z]{2,63}$/;
-      return emailPattern.test(val) || "Formato de email inválido!";
+      return emailPattern.test(val) || "Invalid email format!";
     },
   },
 });
 </script>
-
-<style lang="scss"></style>

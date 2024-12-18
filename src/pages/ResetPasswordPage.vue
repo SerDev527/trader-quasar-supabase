@@ -1,12 +1,14 @@
 <template>
-  <q-page class="bg-green-1 row justify-center items-center">
+  <q-page class="bg-dark row justify-center items-center">
     <q-form
       class="square-card row justify-center"
       @submit.prevent="handlerPasswordReset"
     >
       <q-card square bordered class="q-pa-sm shadow-1">
         <q-card-section>
-          <p class="login col-12 text-h6 text-left">Recuperação de Senha</p>
+          <p class="login col-12 text-h6 text-center text-white">
+            Password Recovery
+          </p>
         </q-card-section>
         <q-separator inset />
         <q-card-section>
@@ -15,11 +17,12 @@
               outlined
               bottom-slots
               v-model="password"
-              label="Nova senha"
+              label="New password"
               :type="visibility"
+              class="input-white"
               lazy-rules
               :rules="[
-                (val) => (val && val.length > 0) || 'Senha é obrigatória.',
+                (val) => (val && val.length > 0) || 'Password is required.',
                 isValidPassword,
               ]"
             >
@@ -33,7 +36,7 @@
                   class="cursor-pointer"
                 />
               </template>
-              <template v-slot:hint> Digite uma senha forte! </template>
+              <template v-slot:hint> Enter a strong password! </template>
 
               <template v-slot:after>
                 <q-btn
@@ -55,7 +58,7 @@
               </template>
             </q-input>
             <q-btn
-              label="Recuperar Senha"
+              label="Recover Password"
               color="primary"
               class="full-width"
               type="submit"
@@ -90,7 +93,7 @@ export default defineComponent({
       try {
         await resetPassword(token, password.value);
         router.push({ name: "login" });
-        notifySuccess(`Senha atualizada! 👌`);
+        notifySuccess(`Password updated! 👌`);
       } catch (error) {
         notifyError(error.message);
       }
@@ -125,10 +128,8 @@ export default defineComponent({
        * Deve ter no mínimo um numero.
        * Deve ter no mínimo caractere especial(!#@$%&)
        */
-      return (passwordPattern.test(val) && val.length >= 6) || "Senha fraca!";
+      return (passwordPattern.test(val) && val.length >= 6) || "Weak password!";
     },
   },
 });
 </script>
-
-<style lang="scss"></style>
