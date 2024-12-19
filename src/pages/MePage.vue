@@ -1,7 +1,7 @@
 <template>
   <q-page class="bg-dark row">
     <!-- Left Sidebar -->
-    <div class="col-12 col-sm-12 col-md-4 q-pa-md">
+    <div class="col-12 col-sm-12 col-md-3 q-pa-md">
       <q-card class="bg-dark-page text-white" bordered>
         <q-card-section>
           <!-- TradingView Widget -->
@@ -22,7 +22,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="col-12 col-sm-12 col-md-8">
+    <div class="col-12 col-sm-12 col-md-9">
       <!-- Navigation tabs -->
       <div class="q-pa-md">
         <div class="row items-center">
@@ -94,15 +94,17 @@
                     </div>
                     <div class="text-body2 text-grey">{{ item.summary }}</div>
                     <div class="q-mt-sm">
-                      <q-chip
-                        v-for="ticker in (item.tickers || '').split(',')"
-                        :key="ticker"
-                        :label="ticker.trim()"
-                        color="amber"
-                        text-color="black"
-                        class="q-mr-xs"
-                        dense
-                      />
+                      <template v-if="item.tickers">
+                        <q-chip
+                          v-for="ticker in item.tickers.split(',')"
+                          :key="ticker"
+                          :label="ticker.trim()"
+                          color="amber"
+                          text-color="black"
+                          class="q-mr-xs"
+                          dense
+                        />
+                      </template>
                     </div>
                   </div>
                   <div class="col-auto">
@@ -147,11 +149,8 @@ export default defineComponent({
 
     // Existing refs
     const tab = ref("myfeed");
-    const feedItems = ref([]);
     const loading = ref(true);
     const error = ref(null);
-
-    // New refs for features
     const page = ref(1);
     const itemsPerPage = ref(10);
     const hasMoreItems = ref(true);
@@ -159,12 +158,13 @@ export default defineComponent({
 
     // Inject the headlines provided by MainLayout
     const headlines = inject("headlines", ref([]));
+    const selectedTicker = inject("selectedTicker", ref(""));
 
-    // Computed properties
-    const filteredItems = computed(() => {
+    // Computed property for filtered headlines
+    const filteredHeadlines = computed(() => {
       let items = headlines.value;
 
-      // Filter by tab selection if needed
+      // Apply tab filtering except for 'myfeed'
       if (tab.value !== "myfeed") {
         items = items.filter(
           (item) =>
@@ -176,28 +176,37 @@ export default defineComponent({
       return items;
     });
 
-    // Update the loadMore function
+    // Watch for changes in filtered headlines
+    watch(
+      filteredHeadlines,
+      (newItems) => {
+        page.value = 1;
+        displayedItems.value = newItems.slice(0, itemsPerPage.value);
+        hasMoreItems.value = newItems.length > itemsPerPage.value;
+        loading.value = false;
+      },
+      { immediate: true }
+    );
+
+    // Watch for tab changes
+    watch(tab, () => {
+      page.value = 1;
+      const items = filteredHeadlines.value;
+      displayedItems.value = items.slice(0, itemsPerPage.value);
+      hasMoreItems.value = items.length > itemsPerPage.value;
+    });
+
     const loadMore = async (index, done) => {
       try {
-        const start = displayedItems.value.length;
+        const items = filteredHeadlines.value;
+        const start = page.value * itemsPerPage.value;
         const end = start + itemsPerPage.value;
-        const remainingItems = filteredItems.value.slice(start, end);
+        const newItems = items.slice(start, end);
 
-        if (remainingItems.length > 0) {
-          // Only add items that aren't already in displayedItems
-          const newItems = remainingItems.filter(
-            (newItem) =>
-              !displayedItems.value.some(
-                (existingItem) => existingItem.id === newItem.id
-              )
-          );
-
-          if (newItems.length > 0) {
-            displayedItems.value = [...displayedItems.value, ...newItems];
-            page.value++;
-          } else {
-            hasMoreItems.value = false;
-          }
+        if (newItems.length > 0) {
+          displayedItems.value = [...displayedItems.value, ...newItems];
+          page.value++;
+          hasMoreItems.value = items.length > end;
         } else {
           hasMoreItems.value = false;
         }
@@ -205,15 +214,6 @@ export default defineComponent({
         done();
       }
     };
-
-    // Watch for search query changes to reset pagination
-    watch(searchQuery, () => {
-      page.value = 1;
-      displayedItems.value = [];
-      hasMoreItems.value = true;
-      const initialItems = filteredItems.value.slice(0, itemsPerPage.value);
-      displayedItems.value = initialItems;
-    });
 
     // Methods
     const fetchHeadlines = async () => {
@@ -228,14 +228,17 @@ export default defineComponent({
 
         if (supabaseError) throw supabaseError;
 
-        feedItems.value = data || [];
+        headlines.value = data || [];
         // Reset pagination
         page.value = 1;
         displayedItems.value = [];
         hasMoreItems.value = true;
 
         // Load initial items
-        const initialItems = filteredItems.value.slice(0, itemsPerPage.value);
+        const initialItems = filteredHeadlines.value.slice(
+          0,
+          itemsPerPage.value
+        );
         displayedItems.value = initialItems;
       } catch (err) {
         error.value = err.message;
@@ -258,7 +261,7 @@ export default defineComponent({
               const newRecord = { ...payload.new, isNew: true };
 
               // Update both feedItems and displayedItems
-              feedItems.value = [newRecord, ...feedItems.value];
+              headlines.value = [newRecord, ...headlines.value];
 
               // Only add to displayedItems if it matches current tab filter
               if (
@@ -273,12 +276,12 @@ export default defineComponent({
               // Remove the isNew flag after 5 seconds
               setTimeout(() => {
                 // Update in feedItems
-                const feedIndex = feedItems.value.findIndex(
+                const feedIndex = headlines.value.findIndex(
                   (item) => item.id === newRecord.id
                 );
                 if (feedIndex !== -1) {
-                  feedItems.value[feedIndex] = {
-                    ...feedItems.value[feedIndex],
+                  headlines.value[feedIndex] = {
+                    ...headlines.value[feedIndex],
                     isNew: false,
                   };
                 }
@@ -298,7 +301,7 @@ export default defineComponent({
 
             case "DELETE":
               // Remove from both arrays
-              feedItems.value = feedItems.value.filter(
+              headlines.value = headlines.value.filter(
                 (item) => item.id !== payload.old.id
               );
               displayedItems.value = displayedItems.value.filter(
@@ -308,11 +311,11 @@ export default defineComponent({
 
             case "UPDATE":
               // Update in both arrays
-              const updateFeedIndex = feedItems.value.findIndex(
+              const updateFeedIndex = headlines.value.findIndex(
                 (item) => item.id === payload.new.id
               );
               if (updateFeedIndex !== -1) {
-                feedItems.value[updateFeedIndex] = payload.new;
+                headlines.value[updateFeedIndex] = payload.new;
               }
 
               const updateDisplayIndex = displayedItems.value.findIndex(
@@ -386,33 +389,21 @@ export default defineComponent({
       return colors[sentiment] || "grey";
     };
 
-    // Add watch for tab changes
-    watch(tab, () => {
-      // Reset pagination when tab changes
-      page.value = 1;
-      displayedItems.value = [];
-      hasMoreItems.value = true;
-      const initialItems = filteredItems.value.slice(0, itemsPerPage.value);
-      displayedItems.value = initialItems;
-    });
-
     return {
       // Existing returns
       tab,
-      feedItems,
       loading,
       error,
+      displayedItems,
+      loadMore,
       formatDate,
-      getSentimentColor,
+      selectedTicker,
 
       // New returns
       page,
       itemsPerPage,
       hasMoreItems,
-      displayedItems,
-      loadMore,
-      filteredItems,
-      headlines,
+      filteredHeadlines,
     };
   },
 });

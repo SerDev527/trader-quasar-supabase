@@ -16,6 +16,7 @@
               placeholder="Search companies..."
               class="search-input"
               @update:model-value="filterCompanies"
+              @input="handleSearchClear"
             >
               <template v-slot:append>
                 <q-icon name="search" />
@@ -162,28 +163,25 @@ export default defineComponent({
     };
 
     const handleCompanySelect = async (company) => {
-      searchText.value = company.company_name;
-      selectedTicker.value = company.company_ticker;
-      showResults.value = false;
-
       try {
+        // Update to show ticker instead of company name
+        searchText.value = company.company_ticker;
+        selectedTicker.value = company.company_ticker;
+        showResults.value = false;
+
         const { data, error } = await supabase
           .from("Headlines")
           .select("*")
-          .or(
-            `tickers.ilike.%${selectedTicker.value},%,
-            tickers.ilike.%${selectedTicker.value}%,
-            tickers.ilike.${selectedTicker.value},%,
-            tickers.ilike.${selectedTicker.value}`
-          )
+          .or(`tickers.ilike.%${company.company_ticker}%`)
           .order("post_timestamp", { ascending: false });
 
         if (error) throw error;
-
-        if (data) {
-          headlines.value = data;
-          console.log("Found headlines:", data.length);
-        }
+        headlines.value = data || [];
+        console.log(
+          "Found headlines for ticker:",
+          company.company_ticker,
+          data?.length
+        );
       } catch (error) {
         console.error("Error fetching headlines:", error);
         headlines.value = [];
