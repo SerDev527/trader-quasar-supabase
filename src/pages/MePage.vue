@@ -1,7 +1,7 @@
 <template>
   <q-page class="bg-dark row">
     <!-- Left Sidebar -->
-    <div class="col-12 col-sm-4 col-md-3 q-pa-md">
+    <div class="col-12 col-sm-12 col-md-4 q-pa-md">
       <q-card class="bg-dark-page text-white" bordered>
         <q-card-section>
           <!-- TradingView Widget -->
@@ -22,7 +22,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="col-12 col-sm-8 col-md-9">
+    <div class="col-12 col-sm-12 col-md-8">
       <!-- Navigation tabs -->
       <div class="q-pa-md">
         <div class="row items-center">
@@ -157,27 +157,19 @@ export default defineComponent({
     const hasMoreItems = ref(true);
     const displayedItems = ref([]);
 
+    // Inject the headlines provided by MainLayout
+    const headlines = inject("headlines", ref([]));
+
     // Computed properties
     const filteredItems = computed(() => {
-      let items = feedItems.value;
+      let items = headlines.value;
 
-      // First filter by tab selection
+      // Filter by tab selection if needed
       if (tab.value !== "myfeed") {
         items = items.filter(
           (item) =>
             item.asset_type &&
             item.asset_type.toLowerCase() === tab.value.toLowerCase()
-        );
-      }
-
-      // Then apply search filter
-      if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
-        items = items.filter(
-          (item) =>
-            item.headline.toLowerCase().includes(query) ||
-            item.summary.toLowerCase().includes(query) ||
-            (item.tickers && item.tickers.toLowerCase().includes(query))
         );
       }
 
@@ -420,6 +412,7 @@ export default defineComponent({
       displayedItems,
       loadMore,
       filteredItems,
+      headlines,
     };
   },
 });

@@ -7,20 +7,41 @@
         </q-toolbar-title>
 
         <div class="row justify-center col-grow">
-          <div class="col-12 col-sm-8 col-md-6">
+          <div class="col-12 col-sm-8 col-md-6 search-container">
             <q-input
-              v-model="searchQuery"
+              v-model="searchText"
               dense
               outlined
               dark
-              placeholder="Search anything i.e APPLE or BTC"
+              placeholder="Search companies..."
               class="search-input"
-              @input="handleSearch"
+              @update:model-value="filterCompanies"
             >
-              <template v-slot:prepend>
+              <template v-slot:append>
                 <q-icon name="search" />
               </template>
             </q-input>
+
+            <q-list
+              v-if="showResults && companyOptions.length > 0"
+              class="search-results bg-dark"
+              bordered
+            >
+              <q-item
+                v-for="company in companyOptions"
+                :key="company.id"
+                clickable
+                v-ripple
+                @click="handleCompanySelect(company)"
+              >
+                <q-item-section>
+                  <q-item-label>{{ company.company_name }}</q-item-label>
+                  <q-item-label class="text-body2 text-grey" caption>{{
+                    company.company_ticker
+                  }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
           </div>
         </div>
 
@@ -48,8 +69,10 @@
 </template>
 
 <script>
-import { defineComponent, ref, provide } from "vue";
+import { defineComponent, ref, provide, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
+import useSupabase from "src/boot/supabase";
+import { debounce } from "quasar";
 
 import userAuthUser from "../composables/UserAuthUser";
 import useNotify from "src/composables/UseNotify";
@@ -63,14 +86,125 @@ export default defineComponent({
     const { logout } = userAuthUser();
     const { notifyError, notifySuccess } = useNotify();
     const { dialogShow } = useDialog();
-    const searchQuery = ref("");
+    const { supabase } = useSupabase();
+    const searchText = ref("");
+    const companyOptions = ref([]);
+    const showResults = ref(false);
+    const selectedTicker = ref("");
+    const headlines = ref([]);
 
-    const handleSearch = (value) => {
-      searchQuery.value = value;
+    // Add function to fetch all headlines
+    const fetchAllHeadlines = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("Headlines")
+          .select("*")
+          .order("post_timestamp", { ascending: false });
+
+        if (error) throw error;
+
+        headlines.value = data || [];
+        console.log("Initial headlines loaded:", data);
+      } catch (error) {
+        console.error("Error fetching initial headlines:", error);
+        headlines.value = [];
+      }
     };
 
-    // Provide the search query to child components
-    provide("searchQuery", searchQuery);
+    // Load headlines when component mounts
+    onMounted(async () => {
+      await fetchAllHeadlines();
+      document.addEventListener("click", handleClickOutside);
+    });
+
+    // Create debounced search function
+    const debouncedSearch = debounce(async (searchValue) => {
+      console.log("Searching for:", searchValue); // Debug log
+
+      if (!searchValue || searchValue.trim() === "") {
+        companyOptions.value = [];
+        showResults.value = false;
+        return;
+      }
+
+      try {
+        // Modified query to use ilike with proper syntax
+        const { data, error } = await supabase
+          .from("Companies")
+          .select("id, company_name, company_ticker")
+          .or(
+            `company_name.ilike.%${searchValue}%,company_ticker.ilike.%${searchValue}%`
+          )
+          .limit(10);
+
+        console.log("Query result:", { data, error }); // Debug log
+
+        if (error) {
+          console.error("Supabase error:", error); // Debug log
+          throw error;
+        }
+
+        if (data) {
+          companyOptions.value = data;
+          showResults.value = true;
+          console.log("Found companies:", data); // Debug log
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+        companyOptions.value = [];
+        showResults.value = false;
+      }
+    }, 300);
+
+    // Wrapper function for the debounced search
+    const filterCompanies = (value) => {
+      debouncedSearch(value);
+    };
+
+    const handleCompanySelect = async (company) => {
+      searchText.value = company.company_name;
+      selectedTicker.value = company.company_ticker;
+      showResults.value = false;
+
+      try {
+        const { data, error } = await supabase
+          .from("Headlines")
+          .select("*")
+          .or(
+            `tickers.ilike.%${selectedTicker.value},%,
+            tickers.ilike.%${selectedTicker.value}%,
+            tickers.ilike.${selectedTicker.value},%,
+            tickers.ilike.${selectedTicker.value}`
+          )
+          .order("post_timestamp", { ascending: false });
+
+        if (error) throw error;
+
+        if (data) {
+          headlines.value = data;
+          console.log("Found headlines:", data.length);
+        }
+      } catch (error) {
+        console.error("Error fetching headlines:", error);
+        headlines.value = [];
+      }
+    };
+
+    // Click outside to close results
+    const handleClickOutside = (event) => {
+      const searchContainer = document.querySelector(".search-container");
+      if (searchContainer && !searchContainer.contains(event.target)) {
+        showResults.value = false;
+      }
+    };
+
+    onBeforeUnmount(() => {
+      document.removeEventListener("click", handleClickOutside);
+    });
+
+    // Provide the selected ticker and headlines to child components
+    provide("selectedTicker", selectedTicker);
+    provide("headlines", headlines);
 
     const handlerLogout = async () => {
       dialogShow({
@@ -108,8 +242,11 @@ export default defineComponent({
 
     return {
       handlerLogout,
-      searchQuery,
-      handleSearch,
+      searchText,
+      companyOptions,
+      showResults,
+      filterCompanies,
+      handleCompanySelect,
     };
   },
 });
@@ -122,6 +259,10 @@ export default defineComponent({
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.search-container {
+  position: relative;
 }
 
 .search-input {
@@ -145,6 +286,35 @@ export default defineComponent({
     color: white !important;
     &::placeholder {
       color: rgba(255, 255, 255, 0.5);
+    }
+  }
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  margin-top: 4px;
+  border-radius: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  .q-item {
+    padding: 8px 16px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .q-item-label {
+    color: white;
+
+    &.caption {
+      color: rgba(255, 255, 255, 0.7);
     }
   }
 }
