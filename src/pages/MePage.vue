@@ -1,7 +1,7 @@
 <template>
   <q-page class="bg-dark row">
-    <!-- Left Sidebar -->
-    <div class="col-12 col-sm-12 col-md-3 q-pa-md">
+    <!-- Left Sidebar - hide on mobile by default -->
+    <div class="col-12 col-sm-12 col-md-3 q-pa-md sidebar-container">
       <q-card class="bg-dark-page text-white" bordered>
         <q-card-section>
           <!-- TradingView Widget -->
@@ -21,8 +21,8 @@
       </q-card>
     </div>
 
-    <!-- Main Content -->
-    <div class="col-12 col-sm-12 col-md-9">
+    <!-- Main Content - show first on mobile -->
+    <div class="col-12 col-sm-12 col-md-9 main-content">
       <!-- Navigation tabs -->
       <div class="q-pa-md">
         <div class="row items-center">
@@ -508,6 +508,26 @@ export default defineComponent({
   }
   100% {
     border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Add these new styles */
+@media (max-width: 1023px) {
+  .q-page {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-container {
+    order: 2; /* Push sidebar to bottom on mobile */
+  }
+
+  .main-content {
+    order: 1; /* Show main content first on mobile */
+  }
+
+  .tradingview-widget-container {
+    height: 400px !important; /* Reduce height on mobile */
   }
 }
 </style>
