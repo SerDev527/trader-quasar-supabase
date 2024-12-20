@@ -29,6 +29,9 @@
               class="search-input"
               @update:model-value="filterCompanies"
               @input="handleSearchClear"
+              @keydown.down.prevent="navigateResults('down')"
+              @keydown.up.prevent="navigateResults('up')"
+              @keydown.enter.prevent="selectHighlighted"
             >
               <template v-slot:append>
                 <q-icon name="search" />
@@ -39,13 +42,15 @@
               v-if="showResults && companyOptions.length > 0"
               class="search-results bg-dark"
               bordered
+              ref="searchResults"
             >
               <q-item
-                v-for="company in companyOptions"
+                v-for="(company, index) in companyOptions"
                 :key="company.id"
                 clickable
                 v-ripple
                 @click="handleCompanySelect(company)"
+                :class="{ highlighted: index === highlightedIndex }"
               >
                 <q-item-section>
                   <q-item-label>{{ company.company_name }}</q-item-label>
@@ -82,7 +87,15 @@
 </template>
 
 <script>
-import { defineComponent, ref, provide, onMounted, onBeforeUnmount } from "vue";
+import {
+  defineComponent,
+  ref,
+  provide,
+  onMounted,
+  onBeforeUnmount,
+  watch,
+  nextTick,
+} from "vue";
 import { useRouter } from "vue-router";
 import useSupabase from "src/boot/supabase";
 import { debounce } from "quasar";
@@ -105,6 +118,8 @@ export default defineComponent({
     const showResults = ref(false);
     const selectedTicker = ref("");
     const headlines = ref([]);
+    const highlightedIndex = ref(-1);
+    const searchResults = ref(null);
 
     // Add function to fetch all headlines
     const fetchAllHeadlines = async () => {
@@ -265,6 +280,58 @@ export default defineComponent({
       await fetchAllHeadlines();
     };
 
+    const scrollToHighlighted = () => {
+      if (!searchResults.value) return;
+
+      // Fix: Access the DOM element using $el
+      const highlightedElement =
+        searchResults.value.$el.querySelector(".highlighted");
+      if (highlightedElement) {
+        highlightedElement.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+      }
+    };
+
+    const navigateResults = (direction) => {
+      if (!showResults.value || companyOptions.value.length === 0) return;
+
+      if (direction === "down") {
+        highlightedIndex.value =
+          highlightedIndex.value < companyOptions.value.length - 1
+            ? highlightedIndex.value + 1
+            : 0;
+      } else {
+        highlightedIndex.value =
+          highlightedIndex.value > 0
+            ? highlightedIndex.value - 1
+            : companyOptions.value.length - 1;
+      }
+
+      // Add scroll after updating the highlight
+      nextTick(() => scrollToHighlighted());
+    };
+
+    const selectHighlighted = () => {
+      if (
+        highlightedIndex.value >= 0 &&
+        companyOptions.value[highlightedIndex.value]
+      ) {
+        handleCompanySelect(companyOptions.value[highlightedIndex.value]);
+      }
+    };
+
+    // Reset highlighted index when search results change
+    watch(companyOptions, () => {
+      highlightedIndex.value = -1;
+    });
+
+    // Reset highlighted index when closing results
+    watch(showResults, (newValue) => {
+      if (!newValue) highlightedIndex.value = -1;
+    });
+
     return {
       handlerLogout,
       searchText,
@@ -275,6 +342,10 @@ export default defineComponent({
       handleSearchClear,
       selectedTicker,
       clearSelection,
+      highlightedIndex,
+      navigateResults,
+      selectHighlighted,
+      searchResults,
     };
   },
 });
@@ -335,6 +406,10 @@ export default defineComponent({
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
+    }
+
+    &.highlighted {
+      background: rgba(255, 255, 255, 0.2);
     }
   }
 
