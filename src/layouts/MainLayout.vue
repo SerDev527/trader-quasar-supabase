@@ -8,41 +8,54 @@
 
         <div class="row justify-center col-grow">
           <div class="col-12 col-sm-8 col-md-6 search-container">
-            <q-input
-              v-model="searchText"
-              dense
-              outlined
-              dark
-              placeholder="Search anything i.e APPLE or BTC"
-              class="search-input"
-              @update:model-value="filterCompanies"
-              @input="handleSearchClear"
-            >
-              <template v-slot:append>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-
-            <q-list
-              v-if="showResults && companyOptions.length > 0"
-              class="search-results bg-dark"
-              bordered
-            >
-              <q-item
-                v-for="company in companyOptions"
-                :key="company.id"
-                clickable
-                v-ripple
-                @click="handleCompanySelect(company)"
+            <div v-if="selectedTicker" class="selected-company">
+              <q-chip
+                removable
+                @remove="clearSelection"
+                color="primary"
+                text-color="white"
               >
-                <q-item-section>
-                  <q-item-label>{{ company.company_name }}</q-item-label>
-                  <q-item-label class="text-body2 text-grey" caption>{{
-                    company.company_ticker
-                  }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
+                {{ selectedTicker }}
+              </q-chip>
+            </div>
+
+            <template v-if="!selectedTicker">
+              <q-input
+                v-model="searchText"
+                dense
+                outlined
+                dark
+                placeholder="Search anything i.e APPLE or BTC"
+                class="search-input"
+                @update:model-value="filterCompanies"
+                @input="handleSearchClear"
+              >
+                <template v-slot:append>
+                  <q-icon name="search" />
+                </template>
+              </q-input>
+
+              <q-list
+                v-if="showResults && companyOptions.length > 0"
+                class="search-results bg-dark"
+                bordered
+              >
+                <q-item
+                  v-for="company in companyOptions"
+                  :key="company.id"
+                  clickable
+                  v-ripple
+                  @click="handleCompanySelect(company)"
+                >
+                  <q-item-section>
+                    <q-item-label>{{ company.company_name }}</q-item-label>
+                    <q-item-label class="text-body2 text-grey" caption>{{
+                      company.company_ticker
+                    }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </template>
           </div>
         </div>
 
@@ -246,6 +259,13 @@ export default defineComponent({
       }
     };
 
+    // Add clearSelection function
+    const clearSelection = async () => {
+      selectedTicker.value = "";
+      searchText.value = "";
+      await fetchAllHeadlines();
+    };
+
     return {
       handlerLogout,
       searchText,
@@ -254,6 +274,8 @@ export default defineComponent({
       filterCompanies,
       handleCompanySelect,
       handleSearchClear,
+      selectedTicker,
+      clearSelection,
     };
   },
 });
@@ -361,6 +383,16 @@ export default defineComponent({
 .q-dialog {
   .q-card {
     background: #1e1e1e;
+  }
+}
+
+// Add styles for the selected company chip
+.selected-company {
+  display: flex;
+  align-items: center;
+
+  .q-chip {
+    font-size: 14px;
   }
 }
 </style>
