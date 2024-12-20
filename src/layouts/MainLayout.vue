@@ -13,7 +13,7 @@
               dense
               outlined
               dark
-              placeholder="Search companies..."
+              placeholder="Search anything i.e APPLE or BTC"
               class="search-input"
               @update:model-value="filterCompanies"
               @input="handleSearchClear"
@@ -105,7 +105,6 @@ export default defineComponent({
         if (error) throw error;
 
         headlines.value = data || [];
-        console.log("Initial headlines loaded:", data);
       } catch (error) {
         console.error("Error fetching initial headlines:", error);
         headlines.value = [];
@@ -238,6 +237,15 @@ export default defineComponent({
         });
     };
 
+    // Update handleSearchClear function
+    const handleSearchClear = async () => {
+      console.log("handleSearchClear called");
+      if (!searchText.value || !searchText.value.trim()) {
+        selectedTicker.value = "";
+        await fetchAllHeadlines();
+      }
+    };
+
     return {
       handlerLogout,
       searchText,
@@ -245,6 +253,7 @@ export default defineComponent({
       showResults,
       filterCompanies,
       handleCompanySelect,
+      handleSearchClear,
     };
   },
 });
