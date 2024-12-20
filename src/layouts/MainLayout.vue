@@ -19,43 +19,42 @@
               </q-chip>
             </div>
 
-            <template v-if="!selectedTicker">
-              <q-input
-                v-model="searchText"
-                dense
-                outlined
-                dark
-                placeholder="Search anything i.e APPLE or BTC"
-                class="search-input"
-                @update:model-value="filterCompanies"
-                @input="handleSearchClear"
-              >
-                <template v-slot:append>
-                  <q-icon name="search" />
-                </template>
-              </q-input>
+            <q-input
+              v-model="searchText"
+              dense
+              outlined
+              dark
+              :disable="!!selectedTicker"
+              placeholder="Search anything i.e APPLE or BTC"
+              class="search-input"
+              @update:model-value="filterCompanies"
+              @input="handleSearchClear"
+            >
+              <template v-slot:append>
+                <q-icon name="search" />
+              </template>
+            </q-input>
 
-              <q-list
-                v-if="showResults && companyOptions.length > 0"
-                class="search-results bg-dark"
-                bordered
+            <q-list
+              v-if="showResults && companyOptions.length > 0"
+              class="search-results bg-dark"
+              bordered
+            >
+              <q-item
+                v-for="company in companyOptions"
+                :key="company.id"
+                clickable
+                v-ripple
+                @click="handleCompanySelect(company)"
               >
-                <q-item
-                  v-for="company in companyOptions"
-                  :key="company.id"
-                  clickable
-                  v-ripple
-                  @click="handleCompanySelect(company)"
-                >
-                  <q-item-section>
-                    <q-item-label>{{ company.company_name }}</q-item-label>
-                    <q-item-label class="text-body2 text-grey" caption>{{
-                      company.company_ticker
-                    }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </template>
+                <q-item-section>
+                  <q-item-label>{{ company.company_name }}</q-item-label>
+                  <q-item-label class="text-body2 text-grey" caption>{{
+                    company.company_ticker
+                  }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
           </div>
         </div>
 
@@ -388,11 +387,21 @@ export default defineComponent({
 
 // Add styles for the selected company chip
 .selected-company {
-  display: flex;
-  align-items: center;
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  z-index: 2;
+  pointer-events: auto;
 
   .q-chip {
     font-size: 14px;
+    margin: 0;
   }
+}
+
+// Adjust input padding when chip is present
+.q-field--dense.q-field--outlined .q-field__control:has(+ .selected-company) {
+  padding-left: 120px; // Adjust this value based on your chip width
 }
 </style>
